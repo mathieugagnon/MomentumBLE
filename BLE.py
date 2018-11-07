@@ -25,6 +25,9 @@ import bluepy
 #define COPY_WATCH_DOG_CHAR_UUID(uuid_struct)    COPY_UUID_128(uuid_struct,0x78,0x95,0xce,0xcb, 0xa9,0x23, 0x4c,0xe4, 0xbc,0x58, 0x27,0xe8,0xce,0x6e,0x00,0xea)
 
 
+max_size = 20
+
+
 # Using bluepy
 
 class ScanDelegate(DefaultDelegate):
@@ -40,12 +43,29 @@ class NotifyDelegate(DefaultDelegate):
         DefaultDelegate.__init__(self)
         self.hndl = hndl
 
+
     def handleNotification(self, cHandle, data):
         if self.hndl == cHandle:
-            print("Handle : {}, data : {}".format(cHandle, data))
+            
+#            print("Handle : {}, data : {}".format(cHandle, data))
+            filldatabuffer(data)
         else:
+            print("Wrong handle called.")
             print("self.hndl : {} != cHandle : {}".format(self.hndl, cHandle))
  
+
+# Fill buffer with data and verify length
+    def filldatabuffer(self,data):
+ #       self.databuffer = bytearray()
+        self.databuffer = data
+        print("Buffer length is : {}".format(len(self.databuffer)))
+        print("Buffer data : {}".format(self.databuffer))
+        if len(self.databuffer) > 20:
+            print("Data buffer too long")   
+        else:
+            print("Data buffer is < 20")
+
+
 
 # Bluetooth classes
 class BleDevice:
@@ -120,7 +140,7 @@ class BleDevice:
         BoogieWD_Characteristic = None
         try:
             Service_characteristics = self.service.getCharacteristics()
-        except error as e:
+        except Exception as e:
             print('Error in finding Characteristic UUID for WD with : {}',format(e))
         
         for characteristic in Service_characteristics:
@@ -139,58 +159,82 @@ class BleDevice:
         try:
             Info = Boogie_Characteristic_WD.read()
             print('My WD Characteristic value is : {}'.format(Info))
-        except error as e:
+        except Exception as e:
             print('Error in reading Watchdog Characteristic with : {}'.format(e))
 
 
 #This function send a RDY to receive data. (VERIFY THIS FONCTION LAST) --------------- TO DELETE --------------
 #    def ReadyToReceiveData(self, RdyServiceUUID, RdyCharUUID):
-        RdyCharacteristic = None
-                
-        RdyService = self.peripheral.getServiceByUUID(RdyServiceUUID)
-        RdyCharacteristics = RdyService.getCharacteristics()       
-        for Characteristic in RdyCharacteristics:
-            if Characteristic.uuid == RdyCharUUID:
-                RdyCharacteristic = Characteristic
-                print('Characteristic Data RDY is : {}'.format(RdyCharacteristic))
-    # Write random data to characteristic to verify if communication is valid. 
-                code = '1'
-                bytes1 = bytes(code, 'utf-8')
-                RdyHandle = RdyCharacteristic.getHandle()
-                RdyCharacteristic.write(bytes1)
+#        RdyCharacteristic = None
+#                
+#        RdyService = self.peripheral.getServiceByUUID(RdyServiceUUID)
+#        RdyCharacteristics = RdyService.getCharacteristics()       
+#        for Characteristic in RdyCharacteristics:
+#            if Characteristic.uuid == RdyCharUUID:
+#                RdyCharacteristic = Characteristic
+#                print('Characteristic Data RDY is : {}'.format(RdyCharacteristic))
+#    # Write random data to characteristic to verify if communication is valid. 
+#                code = '1'
+#                bytes1 = bytes(code, 'utf-8')
+#                RdyHandle = RdyCharacteristic.getHandle()
+#                RdyCharacteristic.write(bytes1)
 
 
 # Get handle from service and data characteristic
     def SubcribeToIndication(self, ServiceUUID, DataCharacteristicUUID):
         self.DataHandle = None
         self.DataHDL = None
+        try:
+            self.Service = self.peripheral.getServiceByUUID(ServiceUUID)
+        except Exception as e:
+            print('Error in Subscribe function, getServiceByUUID : {} '.format(e))
 
-        Service = self.peripheral.getServiceByUUID(ServiceUUID)
-        Characteristics = Service.getCharacteristics()
-        for Characteristic in Characteristics:
+        try:
+            self.Characteristics = self.Service.getCharacteristics()
+        except Exception as e:
+            print('Error in Subscribe function, getServiceByUUID : {} '.format(e))
+
+        for Characteristic in self.Characteristics:
             if Characteristic.uuid == DataCharacteristicUUID:
                 self.DataHandle = Characteristic.getHandle()
                 self.DataHDL = self.DataHandle + 1
                 print('Data Handle # is : {}'.format(self.DataHDL))
-
+            else:
+                print('Characteristic UUID not found')
 
     def InitializeDataTransfert(self, code):
         bytes1 = bytes(code, 'utf-8')
         try:
             self.peripheral.writeCharacteristic(self.DataHDL,bytes1)
             print('Data transfert initialization complete to handle : {}'.format(self.DataHDL))
-        except error as e:
+        except Exception as e:
             print('Error in Data transfert initialization : {}'.format(e))
 
 
     def ReceivingData(self):
         try:
             self.peripheral.setDelegate(NotifyDelegate(self.DataHandle))
-        except error as e:
+        except Exception as e:
             print('Error in Receiving data : {}'.format(e))
         while True:
-            if  self.peripheral.waitForNotifications(5)== False:
+            if  self.peripheral.waitForNotifications(5)== False:      
                 break
+        writewithresponse()
+
+    
+    def writewithresponse(self,CharacteristicUUID )
+        msg = ""
+        for Characteristic in self.Characteristics:
+            if Characteristic.uuid == CharacteristicUUID:
+                ResponseDataHandle = Characteristic.getHandle()
+                try:
+                    self.peripheral.writeCharacteristique(ResponseDataHandle, msg, True)
+                    print('Response received')
+                except Exception as e:
+                    print('TIMEOUT : No response received')
+                
+             
+
 
 
 
