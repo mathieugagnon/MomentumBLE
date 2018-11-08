@@ -45,8 +45,7 @@ class NotifyDelegate(DefaultDelegate):
 
 
     def handleNotification(self, cHandle, data):
-        if self.hndl == cHandle:
-            
+        if self.hndl == cHandle:           
 #            print("Handle : {}, data : {}".format(cHandle, data))
             filldatabuffer(data)
         else:
@@ -219,10 +218,10 @@ class BleDevice:
         while True:
             if  self.peripheral.waitForNotifications(5)== False:      
                 break
-        writewithresponse()
+#        writewithresponse()
 
     
-    def writewithresponse(self,CharacteristicUUID )
+    def writewithresponse(self,CharacteristicUUID):
         msg = ""
         for Characteristic in self.Characteristics:
             if Characteristic.uuid == CharacteristicUUID:
