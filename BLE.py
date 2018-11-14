@@ -44,26 +44,27 @@ class NotifyDelegate(DefaultDelegate):
         self.hndl = hndl
 
 
-    def handleNotification(self, cHandle, data):
-        if self.hndl == cHandle:           
-#            print("Handle : {}, data : {}".format(cHandle, data))
-            filldatabuffer(data)
-        else:
-            print("Wrong handle called.")
-            print("self.hndl : {} != cHandle : {}".format(self.hndl, cHandle))
- 
 
 # Fill buffer with data and verify length
     def filldatabuffer(self,data):
  #       self.databuffer = bytearray()
+        print("Buffer length is : {}".format(len(data)))
+        print("Buffer data : {}".format(data))
         self.databuffer = data
-        print("Buffer length is : {}".format(len(self.databuffer)))
-        print("Buffer data : {}".format(self.databuffer))
         if len(self.databuffer) > 20:
             print("Data buffer too long")   
         else:
             print("Data buffer is < 20")
 
+
+    def handleNotification(self, cHandle, dataIN):
+        if self.hndl == cHandle:           
+#            print("Handle : {}, data : {}".format(cHandle, data))
+            self.filldatabuffer(dataIN)
+        else:
+            print("Wrong handle called.")
+            print("self.hndl : {} != cHandle : {}".format(self.hndl, cHandle))
+ 
 
 
 # Bluetooth classes
@@ -72,6 +73,8 @@ class BleDevice:
 
     def __init__(self):
         self.scanner = Scanner().withDelegate(ScanDelegate())
+
+
 
     def Scan(self, time):
         tries = 3
@@ -84,6 +87,7 @@ class BleDevice:
                 else:
                     raise
             break
+
 
     def ListDevices(self, scan_data_flag):
         for dev in self.devices:
@@ -183,6 +187,7 @@ class BleDevice:
     def SubcribeToIndication(self, ServiceUUID, DataCharacteristicUUID):
         self.DataHandle = None
         self.DataHDL = None
+        DataUUID_OK = False
         try:
             self.Service = self.peripheral.getServiceByUUID(ServiceUUID)
         except Exception as e:
@@ -194,12 +199,17 @@ class BleDevice:
             print('Error in Subscribe function, getServiceByUUID : {} '.format(e))
 
         for Characteristic in self.Characteristics:
+#            print("Printing Char UUID : {} ".format(Characteristic))
             if Characteristic.uuid == DataCharacteristicUUID:
                 self.DataHandle = Characteristic.getHandle()
                 self.DataHDL = self.DataHandle + 1
-                print('Data Handle # is : {}'.format(self.DataHDL))
-            else:
-                print('Characteristic UUID not found')
+#                print('Data Handle # is : {}'.format(self.DataHDL))
+                DataUUID_OK = True
+                break;
+
+        if DataUUID_OK == False:
+            print('Characteristic UUID for Data not found')
+
 
     def InitializeDataTransfert(self, code):
         bytes1 = bytes(code, 'utf-8')
@@ -213,6 +223,7 @@ class BleDevice:
     def ReceivingData(self):
         try:
             self.peripheral.setDelegate(NotifyDelegate(self.DataHandle))
+           # VERIFIER SI LE SET DELEGATE RETOURNE DE QUOI POUR APPELLER ADD BLE DEVICE DANS LA CLASSE NOTIFY ET QUE LES 2 CLASSE APPELE LES MEME FONCTIONS 
         except Exception as e:
             print('Error in Receiving data : {}'.format(e))
         while True:

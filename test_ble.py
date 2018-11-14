@@ -43,6 +43,7 @@ print("test 8")
 code = "\x02\x00"
 ble.InitializeDataTransfert(code)
 
+
 print("test 9")
 #Enter a while loop to receive data. exit the while loop when timeout(10sec) is reach.
 ble.ReceivingData()
