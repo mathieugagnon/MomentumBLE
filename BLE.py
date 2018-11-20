@@ -27,7 +27,6 @@ import bluepy
 #define COPY_WATCH_DOG_SERVICE_UUID(uuid_struct) COPY_UUID_128(uuid_struct,0x1a,0x49,0xd9,0x22, 0xe3,0xa9, 0x4b,0x00, 0x92,0x53, 0xc4,0xc7,0x2a,0x1b,0xcb,0x5d)
    
 
-
 max_size = 20
 index = 0
 __BleDataInBuffer__ = bytearray()
@@ -100,26 +99,55 @@ class BleDevice:
 
     def FindBoogie(self):
         boogie = None
-        for dev in self.devices:
-            for (adtype, desc, value) in dev.getScanData():
-                if adtype == 9:
-                    if value == "Boogie":
-                        boogie = dev
-                        print('OK : Boogie Device Found')
+        if self.devices is not None:
+            for dev in self.devices:
+                for (adtype, desc, value) in dev.getScanData():
+                    if adtype == 9:
+                        if value == "Boogie":
+                            boogie = dev
+                            print('OK : Boogie Device Found')
+        else:
+            print('ERROR : No Device found at all')
+
+        if boogie is None:
+            print('ERROR : Device not found in scan list')
+        
         return boogie
 
 
     def ConnectToDevice(self, device):
-        # Function returns Connected to device when device is not there
+        # Function returns True of False if Boogie device is connected or not 
            # print('EXIT IS : {}'.format(device))
+            
+            self.DeviceConnection = False
+
             if device is None:
                 print('ERROR : No device detected')
             else:
                 try:
-                    self.peripheral = Peripheral(device)
+                    self.peripheral = Peripheral()
+                    self.peripheral.connect(device)
                     print('OK : Connected to device')
+                    self.DeviceConnection = True
+
                 except BTLEException as e:
-                    print('ERROR : Connection to device failed with exception : {} ', format(e))
+                    print('ERROR : Connection to device failed with exception : {}'.format(e))
+
+            return self.DeviceConnection
+
+
+    def DisconnectFromDevice(self,device):
+        if device is not None:
+            try:
+                self.peripheral.disconnect()
+                self.DeviceConnection = False
+                print("OK : Device Disconnected")
+            except Exception as e:
+                print("ERROR : Failed to disconnect Device")
+        else:
+          print("ERROR : No device to disconnect from")
+        
+        return self.DeviceConnection
 
 
 # Service UUID for Watchdog Only
@@ -127,18 +155,15 @@ class BleDevice:
         UUID_ack = False      
         try:      
             self.service = self.peripheral.getServiceByUUID(S_UUID)
-        except Exception as e:
-            print('ERROR : Finding service UUID for WD failed with exception {}',format(e))
-        
-        try:
             if str(self.service.uuid) == S_UUID:
                 UUID_ack = True
                 print('OK : Service WatchDog Verified')
             else:
                 UUID_ack=False
-                print('ERROR : WatchDog Service UUID not found')
+                print('ERROR : Service WatchDog UUID not found in available service')
+
         except Exception as e:
-            print('ERROR : Finding WD Service UUID failed with exception : {} ', format(e))
+            print('ERROR : Finding Watchdog Service UUID failed with exception : {}'.format(e))
 
 
 # Characteristic UUID for Watchdog Only
@@ -147,17 +172,24 @@ class BleDevice:
         BoogieWD_Characteristic = None
         try:
             Service_characteristics = self.service.getCharacteristics()
+            if Service_characteristics is not None:
+                for characteristic in Service_characteristics:
+                    if str(characteristic.uuid) == C_UUID:
+                        CHARACT_ack = True
+                        BoogieWD_Characteristic = characteristic
+                        print('OK : Characteristic WatchDog Verified')
+                    else:
+                        print('ERROR : Characteristic WatchDog not found')
+ 
         except Exception as e:
             print('ERROR : Finding Characteristic UUID failed with exception : {}'.format(e))
         
-        for characteristic in Service_characteristics:
-            if str(characteristic.uuid) == C_UUID:
-                CHARACT_ack = True
-                BoogieWD_Characteristic = characteristic
-                print('OK : Characteristic WatchDog Verified')
-            else:
-                print('ERROR : Characteristic WatchDog not found')
         return BoogieWD_Characteristic       
+
+# Verify WD identification of device
+    def VerifyWD_ID(self, Service_UUID, Charact_UUID):
+        self.GetServiceByUUID_WD(Service_UUID)
+        self.GetCharacteristicsByUUID_WD(Charact_UUID)
 
 
 # Read Characteristics for Watchdog Only (Unused fonction)
@@ -181,22 +213,23 @@ class BleDevice:
 
         try:
             self.Characteristics = self.Service.getCharacteristics()
+            if self.Characteristics is not None:
+                for Characteristic in self.Characteristics:
+#            print("Printing Char UUID : {} ".format(Characteristic))
+                    if Characteristic.uuid == DataCharacteristicUUID:
+                        self.DataHandle = Characteristic.getHandle()
+                        self.DataHDL = self.DataHandle + 1
+                        DataUUID_OK = True
+                        print('OK : Data characteristic UUID found. Handle is : {}'.format(self.DataHDL))
+                        break;
+
+                    if DataUUID_OK == False:
+                        print('ERROR : Data Characteristic UUID not found')
+     
         except Exception as e:
             print('ERROR : Subscribtion function failed to get characteristic by UUID with exception : {}'.format(e))
-
-        for Characteristic in self.Characteristics:
-#            print("Printing Char UUID : {} ".format(Characteristic))
-            if Characteristic.uuid == DataCharacteristicUUID:
-                self.DataHandle = Characteristic.getHandle()
-                self.DataHDL = self.DataHandle + 1
-                DataUUID_OK = True
-                print('OK : Data characteristic UUID found. Handle is : {}'.format(self.DataHDL))
-                break;
-
-        if DataUUID_OK == False:
-            print('ERROR : Data Characteristic UUID not found')
-
-
+        
+        
     def InitializeDataTransfert(self, code):
         bytes1 = bytes(code, 'utf-8')
         try:
@@ -209,28 +242,55 @@ class BleDevice:
     def ReceivingData(self):
         try:
             self.peripheral.setDelegate(NotifyDelegate(self.DataHandle)) 
-            
+            while True:
+                if  self.peripheral.waitForNotifications(2)== False:
+                    print('OK : Data received : {}'.format(__BleDataInBuffer__))         
+                    break
+#       writewithresponse()
+    
         except Exception as e:
             print('ERROR : Setting delegate to receive data failed with exception : {}'.format(e))
-        while True:
-            if  self.peripheral.waitForNotifications(5)== False:
-                print('OK : Data received : {}'.format(__BleDataInBuffer__))         
-                break
-#        writewithresponse()
-
+        
     
-    def writewithresponse(self,CharacteristicUUID):
-        msg = ""
+    def writewithresponse(self,CharacteristicUUID, MessagetoSend):
         for Characteristic in self.Characteristics:
             if Characteristic.uuid == CharacteristicUUID:
                 ResponseDataHandle = Characteristic.getHandle()
                 try:
-                    self.peripheral.writeCharacteristique(ResponseDataHandle, msg, True)
+                    self.peripheral.writeCharacteristique(ResponseDataHandle, MessagetoSend, True)
                     print('Response received')
                 except Exception as e:
                     print('TIMEOUT : No response received')
                 
 
- #   def SendData(self, message):
+    def ConvertMessageLengthToBytes(self,message):
+        MessageSize = len(message)
+        print(MessageSize)
+        if MessageSize < 256:
+            MsgByte =(MessageSize).to_bytes(1, byteorder='big')
+            LengthByte = [bytes([0]).hex(),bytes([0]).hex(),bytes([0]).hex(),MsgByte.hex()]    
+             
+        elif MessageSize >= 256 and MessageSize < 65536:
+            MsgByte =(MessageSize).to_bytes(2,byteorder='big')
+            
+            LengthByte = [bytes([0]).hex(),bytes([0]).hex(),MsgByte.hex()]
+    
+        elif MessageSize >= 65536 and MessageSize < 16777216:
+            MessageSizeB = MessageSize.to_bytes(3,byteorder='big')
+            LengthByte = [bytes([0]).hex(),MsgByte.hex()]
         
+        elif MessageSize >= 16777216 and MessageSize < 4294967296:
+            MessageSizeB = MessageSize.to_bytes(4,byteorder='big')
+            LengthByte = [MsgByte.hex()]
+        
+        else:
+            LengthByte = 0
+            print('Message Size is too big')
+                            
+        print(LengthByte)
 
+#    def SendData(self, message, DataDictionnary):
+        # Connect to device, send length to characteristic and wait for changed value
+            
+      
+                
