@@ -29,7 +29,12 @@ import bluepy
 
 max_size = 20
 index = 0
+MaxLength = 2**(8+8+8+8)
 __BleDataInBuffer__ = bytearray()
+__DeviceConnection__ = False
+
+
+
 
 def filldatabuffer(data):
     sizeData = len(data)
@@ -119,8 +124,7 @@ class BleDevice:
         # Function returns True of False if Boogie device is connected or not 
            # print('EXIT IS : {}'.format(device))
             
-            self.DeviceConnection = False
-
+            
             if device is None:
                 print('ERROR : No device detected')
             else:
@@ -128,26 +132,24 @@ class BleDevice:
                     self.peripheral = Peripheral()
                     self.peripheral.connect(device)
                     print('OK : Connected to device')
-                    self.DeviceConnection = True
+                    __DeviceConnection__ = True
 
                 except BTLEException as e:
                     print('ERROR : Connection to device failed with exception : {}'.format(e))
 
-            return self.DeviceConnection
 
 
     def DisconnectFromDevice(self,device):
         if device is not None:
             try:
                 self.peripheral.disconnect()
-                self.DeviceConnection = False
+                __DeviceConnection__ = False
                 print("OK : Device Disconnected")
             except Exception as e:
                 print("ERROR : Failed to disconnect Device")
         else:
           print("ERROR : No device to disconnect from")
         
-        return self.DeviceConnection
 
 
 # Service UUID for Watchdog Only
@@ -245,13 +247,15 @@ class BleDevice:
             while True:
                 if  self.peripheral.waitForNotifications(2)== False:
                     print('OK : Data received : {}'.format(__BleDataInBuffer__))         
+                    
                     break
 #       writewithresponse()
     
         except Exception as e:
             print('ERROR : Setting delegate to receive data failed with exception : {}'.format(e))
-        
-    
+   
+           
+
     def writewithresponse(self,CharacteristicUUID, MessagetoSend):
         for Characteristic in self.Characteristics:
             if Characteristic.uuid == CharacteristicUUID:
@@ -266,31 +270,34 @@ class BleDevice:
     def ConvertMessageLengthToBytes(self,message):
         MessageSize = len(message)
         print(MessageSize)
-        if MessageSize < 256:
-            MsgByte =(MessageSize).to_bytes(1, byteorder='big')
-            LengthByte = [bytes([0]).hex(),bytes([0]).hex(),bytes([0]).hex(),MsgByte.hex()]    
-             
-        elif MessageSize >= 256 and MessageSize < 65536:
-            MsgByte =(MessageSize).to_bytes(2,byteorder='big')
+
+        if MessageSize > 0 and MessageSize < MaxLength:
+            MsgByte =(MessageSize).to_bytes(4, byteorder='big')
+            MsgByte1 = MsgByte[:1].hex() 
+            MsgByte2 = MsgByte[1:2].hex()
+            MsgByte3 = MsgByte[2:3].hex()
+            MsgByte4 = MsgByte[3:4].hex()
+            LengthByte = [MsgByte1, MsgByte2, MsgByte3, MsgByte4]
+            print(LengthByte)
             
-            LengthByte = [bytes([0]).hex(),bytes([0]).hex(),MsgByte.hex()]
-    
-        elif MessageSize >= 65536 and MessageSize < 16777216:
-            MessageSizeB = MessageSize.to_bytes(3,byteorder='big')
-            LengthByte = [bytes([0]).hex(),MsgByte.hex()]
-        
-        elif MessageSize >= 16777216 and MessageSize < 4294967296:
-            MessageSizeB = MessageSize.to_bytes(4,byteorder='big')
-            LengthByte = [MsgByte.hex()]
-        
         else:
             LengthByte = 0
             print('Message Size is too big')
                             
-        print(LengthByte)
+
+    def WriteDataFile(self):
+
+        f = open("DataFile.txt","a")
+        f.write(str(__BleDataInBuffer__))
+        f.write("\r\n")
+        f.close()
+
+
+# print(LengthByte)
 
 #    def SendData(self, message, DataDictionnary):
         # Connect to device, send length to characteristic and wait for changed value
             
       
+            
                 

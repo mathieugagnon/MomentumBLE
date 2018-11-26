@@ -7,7 +7,10 @@ print("Python : " + platform.python_version())
 #print("Bluepy : " + bluepy.__version__)
 print("---------------")
 
+
+testEnable = 1
 n = 1
+
 
 # Main Code -----------------------------------------------------------
 #print("Test",n, ": Creation d'un objet BLEdevice")
@@ -17,71 +20,77 @@ ble = BleDevice()
 print("------------------------------------------------------------------")
 
 
-
 print("Test",n, ": Detection of Boogie companion")
 n=n+1
-ble.Scan(5.0)
+ble.Scan(2.0)
 boogie = ble.FindBoogie()
 print("------------------------------------------------------------------")
 
 
-
-print("Test",n, ": Connection to Boogie ")
-n=n+1
-#Find device named boogie in device list
-DeviceStatus = ble.ConnectToDevice(boogie)
-print("------------------------------------------------------------------")
+if testEnable == 1:
 
 
-
-print("Test",n,": ID Verification")
-n=n+1
-#Find Watchdog service from Device and validate the UUID
-#ble.GetServiceByUUID_WD(DataDict["WD_ServiceUUID"])
-#Find Watchdog characteristic and validate the UUID
-#BoogieCharacteristic = ble.GetCharacteristicsByUUID_WD(DataDict["WD_CharactUUID"]) 
-ble.VerifyWD_ID(DataDict["WD_ServiceUUID"],DataDict["WD_CharactUUID"])
-print("------------------------------------------------------------------")
+    print("Test",n, ": Connection to Boogie ")
+    n=n+1
+    #Find device named boogie in device list
+    DeviceStatus = ble.ConnectToDevice(boogie)
+    print("------------------------------------------------------------------")
 
 
 
-print("Test",n,": Subcription to Indication")
-n=n+1
-#Find Data Handle from data characteristic UUID. Prepare Handle+1 for writing
-ble.SubcribeToIndication(DataDict["Data_ServiceUUID"], DataDict["DataOUT_CharactUUID"])
-print("------------------------------------------------------------------")
+    print("Test",n,": ID Verification")
+    n=n+1
+    #Find Watchdog service from Device and validate the UUID
+    #ble.GetServiceByUUID_WD(DataDict["WD_ServiceUUID"])
+    #Find Watchdog characteristic and validate the UUID
+    #BoogieCharacteristic = ble.GetCharacteristicsByUUID_WD(DataDict["WD_CharactUUID"]) 
+    ble.VerifyWD_ID(DataDict["WD_ServiceUUID"],DataDict["WD_CharactUUID"])
+    print("------------------------------------------------------------------")
 
 
 
-print("Test",n,": Data Transfert Initialization")
-n=n+1
-#Initialize Data transfert by writing 2 in bytes to the data characteristic
-ble.InitializeDataTransfert(DataDict["Key_Init"])
-print("------------------------------------------------------------------")
+    print("Test",n,": Subcription to Indication")
+    n=n+1
+    #Find Data Handle from data characteristic UUID. Prepare Handle+1 for writing
+    ble.SubcribeToIndication(DataDict["Data_ServiceUUID"], DataDict["DataOUT_CharactUUID"])
+    print("------------------------------------------------------------------")
 
 
 
-print("Test",n,": Receiving Data")
-n=n+1
-#Enter a while loop to receive data. exit the while loop when timeout(10sec) is reach.
-ble.ReceivingData()
-print("------------------------------------------------------------------")
+    print("Test",n,": Data Transfert Initialization")
+    n=n+1
+    #Initialize Data transfert by writing 2 in bytes to the data characteristic
+    ble.InitializeDataTransfert(DataDict["Key_Init"])
+    print("------------------------------------------------------------------")
 
 
 
-print("Test",n,": Sending Data")
-n=n+1
-message = ''
-#ble.SendData(message, DataDict)
-print("------------------------------------------------------------------")
+    print("Test",n,": Receiving Data")
+    n=n+1
+    #Enter a while loop to receive data. exit the while loop when timeout(10sec) is reach.
+    ble.ReceivingData()
+    print("------------------------------------------------------------------")
 
 
 
-print("------------------------------------------------------------------")
-i = 256
-Message = bytearray(i) 
+    print("Test",n,": Sending Data")
+    n=n+1
+    message = ''
+    #ble.SendData(message, DataDict)
+    print("------------------------------------------------------------------")
+
+
+
+    print("------------------------------------------------------------------")
+
+
+i = 2**(8+8)
+Message = range(0, i, 1)
 ble.ConvertMessageLengthToBytes(Message)
 print("------------------------------------------------------------------")
+
+
+ble.WriteDataFile()
 
 
 
