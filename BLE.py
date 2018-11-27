@@ -30,7 +30,8 @@ import bluepy
 max_size = 20
 index = 0
 MaxLength = 2**(8+8+8+8)
-__BleDataInBuffer__ = bytearray()
+#__BleDataInBuffer__ = bytearray()
+__BleDataInBuffer__ = []
 __DeviceConnection__ = False
 
 
@@ -110,7 +111,7 @@ class BleDevice:
                     if adtype == 9:
                         if value == "Boogie":
                             boogie = dev
-                            print('OK : Boogie Device Found')
+                            print('OK : Blackbox Device Found')
         else:
             print('ERROR : No Device found at all')
 
@@ -204,7 +205,7 @@ class BleDevice:
 
 
 # Get handle from service and data characteristic
-    def SubcribeToIndication(self, ServiceUUID, DataCharacteristicUUID):
+    def SubscribeToIndication(self, ServiceUUID, DataCharacteristicUUID):
         self.DataHandle = None
         self.DataHDL = None
         DataUUID_OK = False
@@ -222,7 +223,7 @@ class BleDevice:
                         self.DataHandle = Characteristic.getHandle()
                         self.DataHDL = self.DataHandle + 1
                         DataUUID_OK = True
-                        print('OK : Data characteristic UUID found. Handle is : {}'.format(self.DataHDL))
+                        print('OK : Subscribed to Indication')
                         break;
 
                     if DataUUID_OK == False:
@@ -246,7 +247,7 @@ class BleDevice:
             self.peripheral.setDelegate(NotifyDelegate(self.DataHandle)) 
             while True:
                 if  self.peripheral.waitForNotifications(2)== False:
-                    print('OK : Data received : {}'.format(__BleDataInBuffer__))         
+                    print('OK : Data received :\n\r{}'.format(__BleDataInBuffer__))         
                     
                     break
 #       writewithresponse()
@@ -286,18 +287,21 @@ class BleDevice:
                             
 
     def WriteDataFile(self):
-
-        f = open("DataFile.txt","a")
-        f.write(str(__BleDataInBuffer__))
-        f.write("\r\n")
-        f.close()
-
+        
+#        FileName = input("Enter file name you want to create/open with .extension : ") 
+        FileName = "test_bmp.txt"
+        try:
+            f = open(FileName ,"a")
+            f.write(str(__BleDataInBuffer__))
+            f.write("\n\r")
+            f.close()
+            print("OK : Data written in File :", FileName)
+        except Exception as e:
+            print("Error in opening/closing File")
 
 # print(LengthByte)
 
 #    def SendData(self, message, DataDictionnary):
-        # Connect to device, send length to characteristic and wait for changed value
-            
-      
+        # Connect to device, send length to characteristic and wait for changed v
             
                 
