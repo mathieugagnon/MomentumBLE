@@ -38,7 +38,10 @@ print("-----------------")
 #Reception 1 paquet
 #Enter a while loop to receive data. exit the while loop when timeout(10sec) is reach.
 ble.ReceivingData()
-ble.WriteDataFile()
+
+FileName = "test_bmp.txt"
+
+ble.WriteDataFile(FileName)
 
 
 print("End")

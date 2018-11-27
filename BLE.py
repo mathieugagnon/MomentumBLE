@@ -31,7 +31,7 @@ max_size = 20
 index = 0
 MaxLength = 2**(8+8+8+8)
 #__BleDataInBuffer__ = bytearray()
-__BleDataInBuffer__ = []
+__BleDataInBuffer__ = [] 
 __DeviceConnection__ = False
 
 
@@ -43,6 +43,7 @@ def filldatabuffer(data):
         print("Data buffer too long")   
     else:
         __BleDataInBuffer__.extend(data)    
+        
         # print("{}".format(databuffer))
         # print(self.Mydata)
 # Fill buffer with data and verify length
@@ -242,6 +243,7 @@ class BleDevice:
             print('ERROR : Data transfert initialization failed with exception : {}'.format(e))
 
 
+
     def ReceivingData(self):
         try:
             self.peripheral.setDelegate(NotifyDelegate(self.DataHandle)) 
@@ -286,18 +288,23 @@ class BleDevice:
             print('Message Size is too big')
                             
 
-    def WriteDataFile(self):
-        
+    def WriteDataFile(self,FileName):
 #        FileName = input("Enter file name you want to create/open with .extension : ") 
-        FileName = "test_bmp.txt"
+        
         try:
             f = open(FileName ,"a")
-            f.write(str(__BleDataInBuffer__))
+        except Exception as e:
+            print("Unable to open file")
+          
+        try:
+            prettybuffer = " ".join(map(str,__BleDataInBuffer__))
+            print(prettybuffer)
+            f.write(prettybuffer)
             f.write("\n\r")
             f.close()
             print("OK : Data written in File :", FileName)
         except Exception as e:
-            print("Error in opening/closing File")
+            print("Error in writing in file : {}".format(e))
 
 # print(LengthByte)
 
